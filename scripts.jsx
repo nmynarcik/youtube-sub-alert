@@ -50,13 +50,13 @@ var PlaySound = React.createClass({
 
 var App = React.createClass({
   getInitialState: function() {
-    var _that = this,
-      request;
+    var _that = this;
     $.getJSON('config.json',function(data){
       _that.setState({
         app: {
           client_id: data.web.client_id,
-          apiKey: data.web.apikey
+          apiKey: data.web.apikey,
+          scope: data.web.scope
         }
       });
     });
@@ -79,7 +79,7 @@ var App = React.createClass({
     var results,
       config = {
         'client_id': _this.state.app.client_id,
-        'scope': 'https://www.googleapis.com/auth/youtube.readonly',
+        'scope': _this.state.app.scope,
         // 'immediate': true
       };
     gapi.client.setApiKey(_this.state.app.apiKey);
@@ -99,6 +99,7 @@ var App = React.createClass({
   },
   getData: function() {
     var _this = this;
+    var request;
     gapi.client.load('youtube', 'v3', function() {
       request = gapi.client.youtube.subscriptions.list({
         mySubscribers: true,
@@ -106,10 +107,10 @@ var App = React.createClass({
         maxResults: 50,
         order: 'unread'
       });
-      _this.refreshData();
+      _this.refreshData(request);
     });
   },
-  refreshData: function(){
+  refreshData: function(request){
     var _this = this;
     request.execute(function(response) {
       console.log('response',response);
@@ -132,7 +133,9 @@ var App = React.createClass({
             loading: false
           });
         }
-        setTimeout(_this.refreshData,30000);
+        setTimeout(function(){
+          _this.refreshData(request);
+        },30000);
       }
     });
   },
