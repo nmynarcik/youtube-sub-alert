@@ -1,0 +1,7 @@
+{
+	"web": {
+    "client_id":"YOUR_CLIEND_ID",
+    "client_secret":"YOUR_CLIEND_SECRET",
+    "apikey": "YOUR API KEY"
+	}
+}
