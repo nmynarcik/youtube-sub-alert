@@ -23,10 +23,12 @@ var Loader = React.createClass({
 var NewSub = React.createClass({
   render: function() {
     var content;
-    if(this.props.changed){
-      content = <div className='subscriber'><PlaySound /><img src={this.props.subscriber.thumb} width='30' />{this.props.subscriber.name}</div>;
+    if(this.props.changed && this.props.subscriber.name !== undefined){
+      content = <div className='subscriber'><PlaySound /><img src={this.props.subscriber.thumb || 'http://s.ytimg.com/yts/img/avatar_720-vflYJnzBZ.png'} width='30' />{this.props.subscriber.name || 'Private User'}</div>;
+    }else if(this.props.subscriber.name !== undefined){
+      content = <div className='subscriber'><img src={this.props.subscriber.thumb || 'http://s.ytimg.com/yts/img/avatar_720-vflYJnzBZ.png'} width='30' />{this.props.subscriber.name || 'Private User'}</div>;
     }else{
-      content = <div className='subscriber'><img src={this.props.subscriber.thumb} width='30' />{this.props.subscriber.name}</div>;
+      content = '...';
     }
     return (
       <span>
@@ -50,16 +52,7 @@ var PlaySound = React.createClass({
 
 var App = React.createClass({
   getInitialState: function() {
-    var _that = this;
-    $.getJSON('../config.json',function(data){
-      _that.setState({
-        app: {
-          client_id: data.web.client_id,
-          apiKey: data.web.apikey,
-          scope: data.web.scope
-        }
-      });
-    });
+    console.log('initial state');
     return ({
       subscribers: {
         old: [],
@@ -79,28 +72,60 @@ var App = React.createClass({
       }
     });
   },
+  componentDidMount: function(){
+    console.log('did Mount');
+    var _that = this;
+    $.getJSON('../config.json',function(data){
+      _that.setState({
+        app: {
+          client_id: data.web.client_id,
+          apiKey: data.web.apikey,
+          scope: data.web.scope
+        }
+      });
+      _that.authorizeUser();
+    });
+  },
   authorizeUser: function() {
     var _this = this;
-    var results,
-      config = {
-        'client_id': _this.state.app.client_id,
-        'scope': _this.state.app.scope,
-        // 'immediate': true
+    var results;
+    console.log('nate',_this.config);
+    if(_this.config === undefined){
+      this.config = {
+        'client_id': this.state.app.client_id,
+        'scope': this.state.app.scope,
+        'immediate': true
       };
+    }
+    console.log('setting key',_this.state.app.apiKey);
     gapi.client.setApiKey(_this.state.app.apiKey);
-    gapi.auth.authorize(config, function() {
+    gapi.auth.authorize(_this.config, function() {
       console.log('login complete');
       results = gapi.auth.getToken();
       console.log('results token',results);
-      _this.setState({
+      _this.checkAuth(results);
+    });
+  },
+  checkAuth: function(results){
+    console.log(this);
+    if(results === null){
+      // we need to prompt user for auth
+      this.config.immediate = false;
+      this.getAuth();
+    }else{
+      this.setState({
         app: {
           token: results.access_token
         },
         loading: true,
         loggedin: true
       });
-      _this.getData();
-    });
+      this.getData();
+    }
+  },
+  getAuth: function (){
+    this.config.immediate = false;
+    this.authorizeUser();
   },
   getData: function() {
     var _this = this;
@@ -121,8 +146,9 @@ var App = React.createClass({
       console.log('response',response);
       if (!response) {
         console.log('error', response);
+        location.reload();
       } else {
-        // console.log('success!',response);
+        console.log('success!',response);
         if(!_this.state.app.init){
           console.log('initial load');
           var initialSubs = [];
@@ -140,7 +166,7 @@ var App = React.createClass({
             subscribers: {
               old: initialSubs,
               new: initialSubs,
-              difference: initialSubs[initialSubs.length - 1]
+              difference: {}
             },
             loading: false
           });
@@ -158,7 +184,6 @@ var App = React.createClass({
             theDiff = newSubs.diff(oldSubs),
             oldDiff = _this.state.subscribers.difference,
             changed = newSubs.diff(oldSubs) != 'undefined';
-          console.log(newSubs.diff(oldSubs) === undefined);
           _this.setState({
             subscribers: {
               old: oldSubs,
@@ -167,7 +192,6 @@ var App = React.createClass({
               changed: (theDiff !== undefined)
             }
           });
-          console.log('the diff',newSubs.diff(oldSubs));
         }
         setTimeout(function(){
           _this.refreshData(request);
@@ -194,7 +218,4 @@ var App = React.createClass({
   }
 });
 
-React.render(
-  <App />,
-  document.getElementById('container')
-);
+React.render(<App />, document.getElementById('container'));
