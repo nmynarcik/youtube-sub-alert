@@ -1,8 +1,8 @@
 {
 	"web": {
-    "client_id":"YOUR_CLIEND_ID",
-    "client_secret":"YOUR_CLIEND_SECRET",
-    "apikey": "YOUR API KEY",
-    "scope": "https://www.googleapis.com/auth/youtube.readonly"
+		"client_id":"YOUR_CLIEND_ID",
+		"client_secret":"YOUR_CLIEND_SECRET",
+		"apikey": "YOUR API KEY",
+		"scope": "https://www.googleapis.com/auth/youtube.readonly"
 	}
 }
