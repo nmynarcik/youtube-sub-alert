@@ -19,7 +19,8 @@ A [React.js](https://facebook.github.io/react/) Web App that uses the [YouTube D
 
 ## Notes
 
-Right now it isn't getting the latest sub. YouTube's Data API doesn't sort them like that. I have an idea in place and plan to update this ASAP.
+~~Right now it isn't getting the latest sub. YouTube's Data API doesn't sort them like that. I have an idea in place and plan to update this ASAP.~~
+YouTube doesn't allow us to get the latest subscriber. So, currently, we have to compare the list of subs each time and return the diff. Hacky? Yeah...but had to do something. It's open to suggestions :smile:
 
 ## Contributing
 
