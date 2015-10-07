@@ -51,7 +51,7 @@ var PlaySound = React.createClass({
 var App = React.createClass({
   getInitialState: function() {
     var _that = this;
-    $.getJSON('config.json',function(data){
+    $.getJSON('../config.json',function(data){
       _that.setState({
         app: {
           client_id: data.web.client_id,
@@ -61,16 +61,21 @@ var App = React.createClass({
       });
     });
     return ({
-      subscriber: {
-        name: null,
-        thumb: null
+      subscribers: {
+        old: [],
+        new: [],
+        difference: {
+          name: null,
+          thumb: null
+        }
       },
       loading: false,
       loggedin: false,
       app: {
         token: null,
         apiKey: null,
-        client_id: null
+        client_id: null,
+        init: false
       }
     });
   },
@@ -114,28 +119,59 @@ var App = React.createClass({
     var _this = this;
     request.execute(function(response) {
       console.log('response',response);
-      if ('error' in response) {
-        console.log('error', response.error.message);
+      if (!response) {
+        console.log('error', response);
       } else {
         // console.log('success!',response);
-        if(_this.state.subscriber.name !== response.items[response.items.length-1].subscriberSnippet.title){
+        if(!_this.state.app.init){
+          console.log('initial load');
+          var initialSubs = [];
+          for(var j = 0; j < response.items.length; j++){
+            var theSub = {
+              name: response.items[j].subscriberSnippet.title,
+              thumb: response.items[j].subscriberSnippet.thumbnails.default.url
+            };
+            initialSubs.push(theSub);
+          }
           _this.setState({
-            subscriber: {
-              name: response.items[response.items.length-1].subscriberSnippet.title,
-              thumb: response.items[response.items.length-1].subscriberSnippet.thumbnails.default.url
+            app: {
+              init: true
             },
-            changed: _this.state.subscriber.name !== null,
+            subscribers: {
+              old: initialSubs,
+              new: initialSubs,
+              difference: initialSubs[initialSubs.length - 1]
+            },
             loading: false
           });
         }else{
+          console.log('after load');
+          var newSubs = [];
+          for(var i = 0; i < response.items.length; i++){
+            var newSub = {
+              name: response.items[i].subscriberSnippet.title,
+              thumb: response.items[i].subscriberSnippet.thumbnails.default.url
+            };
+            newSubs.push(newSub);
+          }
+          var oldSubs = _this.state.subscribers.new,
+            theDiff = newSubs.diff(oldSubs),
+            oldDiff = _this.state.subscribers.difference,
+            changed = newSubs.diff(oldSubs) != 'undefined';
+          console.log(newSubs.diff(oldSubs) === undefined);
           _this.setState({
-            changed: false,
-            loading: false
+            subscribers: {
+              old: oldSubs,
+              new: newSubs,
+              difference: (theDiff === undefined) ? oldDiff : theDiff,
+              changed: (theDiff !== undefined)
+            }
           });
+          console.log('the diff',newSubs.diff(oldSubs));
         }
         setTimeout(function(){
           _this.refreshData(request);
-        },30000);
+        },5000);
       }
     });
   },
@@ -144,10 +180,10 @@ var App = React.createClass({
     if(this.state.loggedin === false){
       content = <Login authorizeUser={this.authorizeUser}/>;
     }else{
-      if(this.state.loading === true && this.state.subscriber.name === null){
+      if(this.state.loading === true){
         content = <Loader />;
       }else{
-        content = <NewSub subscriber={this.state.subscriber} changed={this.state.changed} />;
+        content = <NewSub subscriber={this.state.subscribers.difference} changed={this.state.subscribers.changed} />;
       }
     }
     return (

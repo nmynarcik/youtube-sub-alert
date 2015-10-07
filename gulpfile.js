@@ -1,13 +1,12 @@
 var gulp = require('gulp'),
-     livereload = require('gulp-livereload'),
-     jshint = require('gulp-jshint'),
-     react = require('gulp-react'),
-    sass = require('gulp-sass');
+  livereload = require('gulp-livereload'),
+  jshint = require('gulp-jshint'),
+  react = require('gulp-react'),
+  sass = require('gulp-sass');
 
 var jsFiles = [
-  'src/**/*.js',
-  'test/**/*.js',
-  '*.jsx'
+  'js/*.jsx',
+  'js/*.js'
 ];
 
 
