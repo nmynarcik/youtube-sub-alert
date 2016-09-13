@@ -2,7 +2,9 @@ var Login = React.createClass({
   render: function() {
     return (
         <div className='loginForm'>
-          <h2>YouTube Sub Alert</h2>
+          <h2> </h2>
+		  <br/>
+		  <br/>
           <button onClick={this.props.authorizeUser}>Connect YouTube Account</button>
           <br/>
         </div>
@@ -14,7 +16,7 @@ var Loader = React.createClass({
   render: function() {
     return (
       <div className='loader'>
-        <img src='img/ajax-loader.gif' />
+        //<img src='img/ajax-loader.gif' />
       </div>
       );
   }
@@ -32,7 +34,7 @@ var NewSub = React.createClass({
     }
     return (
       <span>
-        {content}
+        {content} 
       </span>
       );
   }
@@ -41,16 +43,17 @@ var NewSub = React.createClass({
 var PlaySound = React.createClass({
   render: function(){
     return(
-      <div>
-        <embed src="audio/airhorn.wav" autostart="true" loop="false"
+     
+        <embed src="audio/bikehorn.mp3" autostart="true" loop="false"
           width="2" height="0">
         </embed>
-      </div>
+      
     );
   }
 });
 
 var App = React.createClass({
+	
   getInitialState: function() {
     console.log('initial state');
     return ({
@@ -140,62 +143,134 @@ var App = React.createClass({
       _this.refreshData(request);
     });
   },
-  refreshData: function(request){
-    var _this = this;
-    request.execute(function(response) {
-      console.log('response',response);
-      if (!response) {
-        console.log('error', response);
-        location.reload();
-      } else {
-        console.log('success!',response);
-        if(!_this.state.app.init){
-          console.log('initial load');
-          var initialSubs = [];
-          for(var j = 0; j < response.items.length; j++){
-            var theSub = {
-              name: response.items[j].subscriberSnippet.title,
-              thumb: response.items[j].subscriberSnippet.thumbnails.default.url
-            };
-            initialSubs.push(theSub);
-          }
-          _this.setState({
+  getPagedData: function(nextPageToken){
+	var _this = this;
+	var furtherRequest = gapi.client.youtube.subscriptions.list({
+				mySubscribers: true,
+				part: 'subscriberSnippet',
+				maxResults: 50,
+				order: 'unread',
+				pageToken: nextPageToken
+			  });
+	furtherRequest.execute(function(data) {			  
+	  if (!data) {
+		console.log('error', data);
+		location.reload();
+	  } else {
+		console.log('success!',data);
+		nextPageToken = data.nextPageToken;
+		for(var j = 0; j < data.items.length; j++){
+			var theSub = {
+			  name: data.items[j].subscriberSnippet.title,
+			  thumb: data.items[j].subscriberSnippet.thumbnails.default.url
+			};
+			this.initialSubs.push(theSub);
+		}
+		if(data.nextPageToken){
+			_this.getPagedData(data.nextPageToken);
+		}else{			
+			 _this.setState({
             app: {
               init: true
             },
             subscribers: {
-              old: initialSubs,
-              new: initialSubs,
+              old: this.initialSubs,
+              new: this.initialSubs,
               difference: {}
             },
             loading: false
           });
+		  console.log("initial load end - subs aufgezeichnet: "+ this.initialSubs.length);
+		}
+	  }
+	});			  
+  },
+  getNewPagedData: function(nextPageToken){
+	  var _this = this;
+	var furtherRequest = gapi.client.youtube.subscriptions.list({
+				mySubscribers: true,
+				part: 'subscriberSnippet',
+				maxResults: 50,
+				order: 'unread',
+				pageToken: nextPageToken
+			  });
+	furtherRequest.execute(function(data) {			  
+	  if (!data) {
+		console.log('error', data);
+		location.reload();
+	  } else {
+		//console.log('success!',data);
+		nextPageToken = data.nextPageToken;
+		for(var j = 0; j < data.items.length; j++){
+			 var newSub = {
+              name: data.items[j].subscriberSnippet.title,
+              thumb: data.items[j].subscriberSnippet.thumbnails.default.url
+            };
+            this.newSubs.push(newSub);
+		}
+		if(data.nextPageToken){
+			_this.getNewPagedData(data.nextPageToken);
+		}else{			
+            console.log("loading new subs complete");
+		 var oldSubs = _this.state.subscribers.new,
+            theDiff = this.newSubs.diff(oldSubs),
+            oldDiff = _this.state.subscribers.difference,			
+            changed = this.newSubs.diff(oldSubs) != 'undefined';			
+			
+          _this.setState({
+            subscribers: {
+              old: oldSubs,
+              new: this.newSubs,
+              difference: (theDiff === undefined) ? oldDiff : theDiff,
+              changed: (theDiff !== undefined)
+            }
+          });		
+		 
+		}
+	  }
+	});
+  },
+  refreshData: function(request){
+    var _this = this;
+	
+    request.execute(function(response) {      
+      if (!response) {
+        console.log('error', response);
+        location.reload();
+      } else {
+        //console.log('success!',response);
+        if(!_this.state.app.init){
+		this.initialSubs=[];
+          console.log('initial load start');
+          
+		  for(var j = 0; j < response.items.length; j++){
+				var theSub = {
+				  name: response.items[j].subscriberSnippet.title,
+				  thumb: response.items[j].subscriberSnippet.thumbnails.default.url
+				};
+				this.initialSubs.push(theSub);
+		  }				
+		if(response.nextPageToken){
+			_this.getPagedData(response.nextPageToken); 
+		}		           
         }else{
-          console.log('after load');
-          var newSubs = [];
+			console.log("loading new subs");
+          this.newSubs = [];
           for(var i = 0; i < response.items.length; i++){
             var newSub = {
               name: response.items[i].subscriberSnippet.title,
               thumb: response.items[i].subscriberSnippet.thumbnails.default.url
             };
-            newSubs.push(newSub);
-          }
-          var oldSubs = _this.state.subscribers.new,
-            theDiff = newSubs.diff(oldSubs),
-            oldDiff = _this.state.subscribers.difference,
-            changed = newSubs.diff(oldSubs) != 'undefined';
-          _this.setState({
-            subscribers: {
-              old: oldSubs,
-              new: newSubs,
-              difference: (theDiff === undefined) ? oldDiff : theDiff,
-              changed: (theDiff !== undefined)
-            }
-          });
+            this.newSubs.push(newSub);
+          } 
+         if(response.nextPageToken){
+			_this.getNewPagedData(response.nextPageToken); 
+		}		 
         }
         setTimeout(function(){
           _this.refreshData(request);
-        },5000);
+        },20000);
+		//long timeout since getting and processing takes a while...
       }
     });
   },
